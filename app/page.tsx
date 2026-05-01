@@ -1,23 +1,20 @@
-// import { caller } from "@/trpc/server"; // {caller} used to get data on server component
-import { getQueryClient, trpc } from "@/trpc/server";
-import { dehydrate, HydrationBoundary, queryOptions } from "@tanstack/react-query";
-import { Client } from "./client";
-import { Suspense } from "react";
+import { requireAuth } from "@/lib/auth.utils";
+import { LogoutButton } from "@/features/auth/components/logout-button";
+import { caller } from "@/trpc/server";
+
 
 const Page = async () => {
-  //prefetching the data on the server
-  const queryClient = getQueryClient();
-  void queryClient.prefetchQuery(trpc.getUsers.queryOptions());
+  await requireAuth();
+
+  const data = await caller.getUsers(); // we have used caller to pass data to the server component without using a hook
 
   return (
     <div>
-      <HydrationBoundary state={dehydrate(queryClient)}>
-        <Suspense fallback={<p>Loading...</p>}> {/* handle the loading state */}
-          <Client />
-        </Suspense>
-      </HydrationBoundary>
+      <p> Protected server component </p>
+      <p>{JSON.stringify(data, null, 2)}</p>
+      <LogoutButton />
     </div>
-  );
+  )
 }
 
 export default Page;
