@@ -11,6 +11,8 @@
     "all": "mprocs"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.71",
+    "@ai-sdk/openai": "^3.0.63",
     "@base-ui/react": "^1.4.0",
     "@hookform/resolvers": "^5.2.2",
     "@prisma/adapter-pg": "^7.7.0",
@@ -19,6 +21,7 @@
     "@trpc/client": "^11.16.0",
     "@trpc/server": "^11.16.0",
     "@trpc/tanstack-react-query": "^11.16.0",
+    "ai": "^6.0.177",
     "better-auth": "^1.6.9",
     "class-variance-authority": "^0.7.1",
     "client-only": "^0.0.1",

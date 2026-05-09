@@ -1,10 +1,41 @@
-import { get } from 'http';
-import { createTRPCRouter, protectedProcedure } from '../init';
+import { baseProcedure, createTRPCRouter, protectedProcedure } from '../init';
 import prisma from '@/lib/db';
 import { inngest } from '@/inngest/client';
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
 
 export const appRouter = createTRPCRouter({
+  /*-----------------------------------------------------------------------------------------------*/
+  //test geminai(new)
+  testGeminaiAi: baseProcedure.mutation(async () => {
+    await inngest.send({
+      name: "execute_with_geminai/ai",
+    });
 
+    return { success: true, message: "Job queued" }
+  }),
+  /*-----------------------------------------------------------------------------------------------*/
+
+  /*-----------------------------------------------------------------------------------------------*/
+  //test openai with inngest (new)
+  testOpenaiAi: baseProcedure.mutation(async () => {
+    await inngest.send({
+      name: "execute_with_openai/ai",
+    });
+
+    return { success: true, message: "Job queued" }
+  }),
+  /*-----------------------------------------------------------------------------------------------*/
+  //test openai (old)
+  testAi: protectedProcedure.mutation(async () => {
+    const { text } = await generateText({
+      model: openai('gpt-5'),
+      prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+    });
+    return text;
+  }),
+  /*-----------------------------------------------------------------------------------------------*/
   //getUsers = ONLY for logged-in users
   getUsers: protectedProcedure.query(({ ctx }) => {
     return prisma.user.findMany({
