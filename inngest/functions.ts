@@ -1,15 +1,73 @@
-// src/inngest/functions.ts
 import { inngest } from "./client";
+import { createOpenAI } from "@ai-sdk/openai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { generateText } from "ai";
 
-export const processTask = inngest.createFunction(
-  { id: "process-task", triggers: { event: "app/task.created" } },
-  async ({ event, step }) => {
-    const result = await step.run("handle-task", async () => {
-      return { processed: true, id: event.data.id };
-    });
+const openai = createOpenAI();
+const google = createGoogleGenerativeAI();
 
-    await step.sleep("pause", "10s");
+// openai paid, google gemini free both used for inngest background functions
+export const execute_with_openai = inngest.createFunction(
+  //inngest@4.3.0 expects 2 arguments. id - triggers
+  {
+    id: "execute_with_openai/ai",
+    triggers: [
+      {
+        event: "execute_with_openai/ai",
+      },
+    ],
+  },
+  async ({ step }) => {
+    await step.sleep("pretend", "5s");
 
-    return { message: `Task ${event.data.id} complete`, result };
+
+    // openai example min 5$
+    const result = await step.run(
+      "openai-generate-text",
+      async () => {
+        return await generateText({
+          model: openai("gpt-4"),
+          system: "You are a helpful assistant.",
+          prompt: "What is 2 + 2?",
+        });
+      }
+    );
+
+    return {
+      answer: result.text,
+    };
+  }
+);
+
+export const execute_with_geminai = inngest.createFunction(
+  //inngest@4.3.0 expects 2 arguments. id - triggers
+  {
+    id: "execute_with_geminai/ai",
+    triggers: [
+      {
+        event: "execute_with_geminai/ai",
+      },
+    ],
+  },
+  async ({ step }) => {
+    await step.sleep("pretend", "5s");
+
+
+    // gemina example free
+    const result = await step.run(
+      "gemini-generate-text",
+      async () => {
+        return await generateText({
+          model: google("gemini-2.5-flash"),
+          system: "You are a helpful assistant.",
+          prompt: "What is 2 + 2?",
+        });
+      }
+    );
+
+
+    return {
+      answer: result.text,
+    };
   }
 );

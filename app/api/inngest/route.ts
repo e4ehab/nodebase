@@ -1,11 +1,12 @@
 // src/app/api/inngest/route.ts
 import { serve } from "inngest/next";
 import { inngest } from "@/inngest/client";
-import { processTask } from "@/inngest/functions";
+import { execute_with_openai,execute_with_geminai } from "@/inngest/functions";
 
 export const { GET, POST, PUT } = serve({
     client: inngest,
     functions: [
-        processTask
+        execute_with_openai,
+        execute_with_geminai
     ], // register the functions comming from inngest/functions.ts
-});
+}); 
