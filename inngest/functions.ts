@@ -5,7 +5,7 @@ import { generateText } from "ai";
 
 const openai = createOpenAI();
 const google = createGoogleGenerativeAI();
-
+/*---------------------------------------------------------------------------------------------------------------------------------*/
 // openai paid, google gemini free both used for inngest background functions
 export const execute_with_openai = inngest.createFunction(
   //inngest@4.3.0 expects 2 arguments. id - triggers
@@ -29,16 +29,22 @@ export const execute_with_openai = inngest.createFunction(
           model: openai("gpt-4"),
           system: "You are a helpful assistant.",
           prompt: "What is 2 + 2?",
+
+          experimental_telemetry: {
+            isEnabled: true,
+            recordInputs: true,
+            recordOutputs: true,
+          },
         });
       }
     );
-
+    
     return {
       answer: result.text,
     };
   }
 );
-
+/*---------------------------------------------------------------------------------------------------------------------------------*/
 export const execute_with_geminai = inngest.createFunction(
   //inngest@4.3.0 expects 2 arguments. id - triggers
   {
@@ -61,13 +67,19 @@ export const execute_with_geminai = inngest.createFunction(
           model: google("gemini-2.5-flash"),
           system: "You are a helpful assistant.",
           prompt: "What is 2 + 2?",
+
+          experimental_telemetry: {
+            isEnabled: true,
+            recordInputs: true,
+            recordOutputs: true,
+          },
         });
       }
     );
-
 
     return {
       answer: result.text,
     };
   }
 );
+/*---------------------------------------------------------------------------------------------------------------------------------*/
