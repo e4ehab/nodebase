@@ -3,9 +3,18 @@ import prisma from '@/lib/db';
 import { inngest } from '@/inngest/client';
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
+import { TRPCError } from '@trpc/server';
 
 
 export const appRouter = createTRPCRouter({
+  /*-----------------------------------------------------------------------------------------------*/
+  //send dummy error
+  testError: baseProcedure.mutation(async()=>{
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "This is a test error from the server",
+    });
+  }),
   /*-----------------------------------------------------------------------------------------------*/
   //test geminai(new)
   testGeminaiAi: baseProcedure.mutation(async () => {
