@@ -1,4 +1,4 @@
-import { baseProcedure, createTRPCRouter, protectedProcedure } from '../init';
+import { baseProcedure, createTRPCRouter, premiumProcedure, protectedProcedure } from '../init';
 import prisma from '@/lib/db';
 import { inngest } from '@/inngest/client';
 import { openai } from '@ai-sdk/openai';
@@ -9,7 +9,7 @@ import { TRPCError } from '@trpc/server';
 export const appRouter = createTRPCRouter({
   /*-----------------------------------------------------------------------------------------------*/
   //send dummy error
-  testError: baseProcedure.mutation(async()=>{
+  testError: baseProcedure.mutation(async () => {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "This is a test error from the server",
@@ -73,6 +73,15 @@ export const appRouter = createTRPCRouter({
         name: "New Workflow"
       },
     });
+  }),
+  /*-----------------------------------------------------------------------------------------------*/
+  //test geminai with PremuimProcedure
+  testGeminaiAiWithPremuimProcedure: premiumProcedure.mutation(async () => {
+    await inngest.send({
+      name: "execute_with_geminai/ai",
+    });
+
+    return { success: true, message: "Job queued" }
   }),
   /*-----------------------------------------------------------------------------------------------*/
 });

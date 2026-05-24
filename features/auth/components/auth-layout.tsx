@@ -12,6 +12,7 @@ export const AuthLayout = ({ children }: { children: React.ReactNode; }) => {
             width={30}
             height={30}
             className="h-[30px] w-[30px]"
+            style={{ width: 'auto', height: 'auto' }}
           />
           Nodebase
         </Link>
