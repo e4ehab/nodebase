@@ -2,6 +2,7 @@ import { initTRPC, TRPCError } from '@trpc/server';
 import { cache } from 'react';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
+import { polarClient } from '@/lib/polar';
 
 export const createTRPCContext = cache(async () => {
   /**
@@ -39,4 +40,20 @@ export const protectedProcedure = baseProcedure.use(async ({ ctx, next }) => {
     });
   }
   return next({ ctx: { ...ctx, auth: session } }); //extend the object that next will send by extending the context and add the auth object as the session
+})
+
+export const premiumProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  //get the customer from polar using the user id from the session (cth.auth.user.id)
+  const customer = await polarClient.customers.getStateExternal({
+    externalId: ctx.auth.user.id
+  });
+  //if the customer doesn't have an active subscription, throw an error
+  if (!customer.activeSubscriptions || customer.activeSubscriptions.length === 0) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'You need an active subscription to access this resource'
+    });
+  }
+  // other wise we can retrurn next and add premuim features to the customer using the premiumProcedure adnd it will throw an error if the user doesn't have an active subscription
+  return next({ ctx: { ...ctx, customer } });
 })
