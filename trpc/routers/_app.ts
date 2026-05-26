@@ -4,10 +4,11 @@ import { inngest } from '@/inngest/client';
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { TRPCError } from '@trpc/server';
+import { workflowsRouter } from '@/features/workflows/server/routers';
 
 
 export const appRouter = createTRPCRouter({
-  /*-----------------------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------------------*/
   //send dummy error
   testError: baseProcedure.mutation(async () => {
     throw new TRPCError({
@@ -15,7 +16,7 @@ export const appRouter = createTRPCRouter({
       message: "This is a test error from the server",
     });
   }),
-  /*-----------------------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------------------*/
   //test geminai(new)
   testGeminaiAi: baseProcedure.mutation(async () => {
     await inngest.send({
@@ -24,9 +25,7 @@ export const appRouter = createTRPCRouter({
 
     return { success: true, message: "Job queued" }
   }),
-  /*-----------------------------------------------------------------------------------------------*/
-
-  /*-----------------------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------------------*/
   //test openai with inngest (new)
   testOpenaiAi: baseProcedure.mutation(async () => {
     await inngest.send({
@@ -35,7 +34,7 @@ export const appRouter = createTRPCRouter({
 
     return { success: true, message: "Job queued" }
   }),
-  /*-----------------------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------------------*/
   //test openai (old)
   testAi: protectedProcedure.mutation(async () => {
     const { text } = await generateText({
@@ -44,7 +43,7 @@ export const appRouter = createTRPCRouter({
     });
     return text;
   }),
-  /*-----------------------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------------------*/
   //getUsers = ONLY for logged-in users
   getUsers: protectedProcedure.query(({ ctx }) => {
     return prisma.user.findMany({
@@ -53,14 +52,14 @@ export const appRouter = createTRPCRouter({
       },
     });
   }),
-  /*-----------------------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------------------*/
   //getWorkflows
   getWorkflows: protectedProcedure.query(({ }) => {
     return prisma.workflow.findMany();
   }),
-  /*-----------------------------------------------------------------------------------------------*/
-  //createWorkflow 
-  createWorkflow: protectedProcedure.mutation(async () => {
+/*-----------------------------------------------------------------------------------------------*/
+  //createWorkflow
+  createWorkflow: protectedProcedure.mutation(async ({ ctx }) => {
 
     //fetch the video (testing inngest and background functions)
     await inngest.send({
@@ -70,11 +69,12 @@ export const appRouter = createTRPCRouter({
 
     return prisma.workflow.create({
       data: {
-        name: "New Workflow"
+        name: "New Workflow",
+        userId: ctx.auth.user.id,
       },
     });
   }),
-  /*-----------------------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------------------*/
   //test geminai with PremuimProcedure
   testGeminaiAiWithPremuimProcedure: premiumProcedure.mutation(async () => {
     await inngest.send({
@@ -83,7 +83,8 @@ export const appRouter = createTRPCRouter({
 
     return { success: true, message: "Job queued" }
   }),
-  /*-----------------------------------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------------------*/
+  workflows : workflowsRouter,
 });
 
 // export type definition of API
