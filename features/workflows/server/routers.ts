@@ -6,6 +6,7 @@ import { generateSlug } from "random-word-slugs"; // used to generate random wor
 
 
 export const workflowsRouter = createTRPCRouter({
+/*------------------------------------------------*/
     // create workflow
     create: premiumProcedure.mutation(({ ctx }) => {
         return prisma.workflow.create({
@@ -15,7 +16,7 @@ export const workflowsRouter = createTRPCRouter({
             },
         });
     }),
-
+/*------------------------------------------------------------------------------------------------------------------------------------*/
     // remove workflow
     remove: protectedProcedure
         .input(z.object({ id: z.string() })) // This tells tRPC what shape of data to expect from the client (object with a string "id")
@@ -29,7 +30,7 @@ export const workflowsRouter = createTRPCRouter({
             })
 
         }),
-
+/*------------------------------------------------------------------------------------------------------------------------------------*/
     // update workflow name
     updateName: protectedProcedure
         .input(z.object({ id: z.string(), name: z.string().min(1) }))
@@ -44,19 +45,19 @@ export const workflowsRouter = createTRPCRouter({
                 },
             });
         }),
-
+/*------------------------------------------------------------------------------------------------------------------------------------*/
     // get specific workflow by id
     getOne: protectedProcedure
         .input(z.object({ id: z.string() }))
         .query(({ ctx, input }) => {
-            return prisma.workflow.findUnique({
+            return prisma.workflow.findUniqueOrThrow({
                 where: {
                     id: input.id, // INPUT: workflow id the client sent
                     userId: ctx.auth.user.id, // AUTH: the ID of the currently logged-in user, injected by tRPC's context ( only allow access to workflows that belong to the authenticated user )
                 },
             });
         }),
-
+/*------------------------------------------------------------------------------------------------------------------------------------*/
     // get all workflows for the authenticated user
     getMany: protectedProcedure
         .input(
@@ -115,4 +116,5 @@ export const workflowsRouter = createTRPCRouter({
                 hasPreviousPage,
             };
         }),
+/*-----------------------------------------------------------*/
 });
