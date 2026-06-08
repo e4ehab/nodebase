@@ -86,6 +86,8 @@ model Workflow {
 
 enum NodeType {
   INITIAL // It defines an enum called NodeType with a single allowed value: INITIAL.
+  MANUAL_TRIGGER
+  HTTP_REQUEST
 }
 
 model Node {
