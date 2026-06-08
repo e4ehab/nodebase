@@ -3,20 +3,29 @@ import prisma from "@/lib/db";
 import { createTRPCRouter, premiumProcedure, protectedProcedure } from "@/trpc/init";
 import { z } from "zod";
 import { generateSlug } from "random-word-slugs"; // used to generate random workflow names like "blue-horse-jump" when creating a new workflow
-
+import { NodeType } from "@/app/generated/prisma/client";
+import type { Node, Edge } from "@xyflow/react"; // type of node & Edge from @xyflow/react
 
 export const workflowsRouter = createTRPCRouter({
-/*------------------------------------------------*/
+    /*------------------------------------------------*/
     // create workflow
     create: premiumProcedure.mutation(({ ctx }) => {
         return prisma.workflow.create({
             data: {
                 name: generateSlug(3),
                 userId: ctx.auth.user.id, // associate workflow with the authenticated user
+                nodes: { // every time a new workflow is created, we also create Initial node for this workflow
+                    create: {
+                        type: NodeType.INITIAL,
+                        position: { x: 0, y: 0 },
+                        name: NodeType.INITIAL, // default name for the initial node, can be changed later by the user in the editor
+                    }
+
+                }
             },
         });
     }),
-/*------------------------------------------------------------------------------------------------------------------------------------*/
+    /*------------------------------------------------------------------------------------------------------------------------------------*/
     // remove workflow
     remove: protectedProcedure
         .input(z.object({ id: z.string() })) // This tells tRPC what shape of data to expect from the client (object with a string "id")
@@ -30,7 +39,7 @@ export const workflowsRouter = createTRPCRouter({
             })
 
         }),
-/*------------------------------------------------------------------------------------------------------------------------------------*/
+    /*------------------------------------------------------------------------------------------------------------------------------------*/
     // update workflow name
     updateName: protectedProcedure
         .input(z.object({ id: z.string(), name: z.string().min(1) }))
@@ -45,19 +54,57 @@ export const workflowsRouter = createTRPCRouter({
                 },
             });
         }),
-/*------------------------------------------------------------------------------------------------------------------------------------*/
-    // get specific workflow by id
+    /*------------------------------------------------------------------------------------------------------------------------------------*/
+    /*
+     * Here's what it does step by step:
+       ---------------------------------
+     1. Receives a workflow id from the client.
+     2. Fetches that workflow from the database, but only if it belongs to the currently logged-in user — so users can't access each other's workflows.
+     3. Transforms the nodes into a format React Flow understands — mainly fixing the position field which is stored as raw JSON in the database but React Flow expects it as { x, y }.
+     4. Transforms the connections (database term) into edges (React Flow term) — mapping fields like fromNodeId → source and toNodeId → target.
+     5. Returns the workflow's id, name, the formatted nodes, and the formatted edges — ready to be rendered directly in the flow canvas.
+
+     * In short: "Give me workflow X" → verify you own it → fetch it → translate it from database format to React Flow format → send it back."
+     */
     getOne: protectedProcedure
         .input(z.object({ id: z.string() }))
-        .query(({ ctx, input }) => {
-            return prisma.workflow.findUniqueOrThrow({
+        .query(async ({ ctx, input }) => {
+            const workflow = await prisma.workflow.findUniqueOrThrow({
                 where: {
                     id: input.id, // INPUT: workflow id the client sent
                     userId: ctx.auth.user.id, // AUTH: the ID of the currently logged-in user, injected by tRPC's context ( only allow access to workflows that belong to the authenticated user )
                 },
+                include: {
+                    nodes: true, // include the nodes of the workflow in the response, so we can render them in the editor
+                    connections: true, // include the connections of the workflow in the response, so we can render them in the editor
+                },
             });
+
+            // ransform the server nodes to react-flow compatible nodes ( mainly converting the position from Prisma's Json type to React Flow's expected format )
+            const nodes: Node[] = workflow.nodes.map((node) => ({
+                id: node.id,
+                type: node.type,
+                position: node.position as { x: number; y: number }, // cast the position to the expected format
+                data: (node.data as Record<string, unknown>) || {}, // ensure data is an object, default to empty object if null
+            }));
+
+            // Transform server connections to react-flow compatible edges
+            const edges: Edge[] = workflow.connections.map((connection) => ({
+                id: connection.id,
+                source: connection.fromNodeId,
+                target: connection.toNodeId,
+                sourceHandle: connection.fromOutput,
+                targetHandle: connection.toInput,
+            }));
+
+            return {
+                id: workflow.id,
+                name: workflow.name,
+                nodes,
+                edges,
+            };
         }),
-/*------------------------------------------------------------------------------------------------------------------------------------*/
+    /*------------------------------------------------------------------------------------------------------------------------------------*/
     // get all workflows for the authenticated user
     getMany: protectedProcedure
         .input(
@@ -116,5 +163,5 @@ export const workflowsRouter = createTRPCRouter({
                 hasPreviousPage,
             };
         }),
-/*-----------------------------------------------------------*/
+    /*-----------------------------------------------------------*/
 });

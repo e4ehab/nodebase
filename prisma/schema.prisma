@@ -8,13 +8,13 @@ datasource db {
 }
 
 model User {
-  id            String    @id
+  id            String     @id
   name          String
   email         String
-  emailVerified Boolean   @default(false)
+  emailVerified Boolean    @default(false)
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
   sessions      Session[]
   accounts      Account[]
   workflows     Workflow[]
@@ -72,11 +72,58 @@ model Verification {
 }
 
 model Workflow {
-  id   String @id @default(cuid())
-  name String
+  id        String   @id @default(cuid())
+  name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  nodes       Node[] // A workflow can have multiple nodes [establish relation between nodes and workflows]
+  connections Connection[]
+
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade) // Each workflow belongs to a user
+}
+
+enum NodeType {
+  INITIAL // It defines an enum called NodeType with a single allowed value: INITIAL.
+}
+
+model Node {
+  id         String   @id @default(cuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade) // each node stores a workflowId foreign key, and through it, belongs to one Workflow
+
+  name     String
+  type     NodeType
+  position Json // position is stored as a JSON object, allowing for flexible representation of coordinates or layout information
+  data     Json     @default("{}") // data is also stored as a JSON object, which can hold any additional information relevant to the node, with a default value of an empty JSON object
+
+  outputConnections Connection[] @relation("FromNode")
+  inputConnections  Connection[] @relation("ToNode")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Connection {
+  id         String   @id @default(cuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  /**
+   * the following fields define the relationship between nodes (from what node to what node)
+   */
+  fromNodeId String
+  fromNode   Node   @relation("FromNode", fields: [fromNodeId], references: [id], onDelete: Cascade)
+
+  toNodeId String
+  toNode   Node   @relation("ToNode", fields: [toNodeId], references: [id], onDelete: Cascade)
+
+  fromOutput String @default("main") // fromOutput is a string that can be used to specify which output of the fromNode is being connected, allowing for more complex node structures where a node might have multiple outputs.
+  toInput    String @default("main") // toInput is a string that can specify which input of the toNode is being connected, similarly allowing for nodes with multiple inputs.
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([fromNodeId, toNodeId, fromOutput, toInput]) // This unique constraint ensures that there cannot be duplicate connections between the same nodes with the same output and input specifications.
 }
