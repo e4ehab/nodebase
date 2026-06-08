@@ -12,7 +12,7 @@ export const AddNodeButton = memo(() => {
     /* waraping the button with NodeSelector will allow the button to become a trigger to open the drawer */
     <NodeSelector open={selectorOpen} onOpenChange={setSelectorOpen}>
       <Button
-        onClick={() => {}}
+        onClick={() => setSelectorOpen(true)}
         size="icon"
         variant="outline"
         className="bg-background"

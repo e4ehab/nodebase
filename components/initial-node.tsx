@@ -15,7 +15,7 @@ export const InitialNode = memo((props: NodeProps) => {
       <WorkflowNode showToolbar={false}>
         <PlaceholderNode
           {...props}
-          onClick={() => setSelectorOpen(true)}
+          onClick={() => setSelectorOpen(true)} // we need it here because we want the placeholderNode click to trigger the node selector to open
         >
           <div className="cursor-pointer flex items-center justify-center">
             <PlusIcon className="size-4" />
