@@ -8,6 +8,8 @@ import { ReactFlow, applyNodeChanges, applyEdgeChanges, addEdge, type Node, type
 import '@xyflow/react/dist/style.css';
 import { nodeComponents } from "@/config/node-components";
 import { AddNodeButton } from "./add-node-button";
+import { useSetAtom } from "jotai";
+import { editorAtom } from "../store/atoms";
 /*--------------------------------------------------------------------------------------------------*/
 
 export const EditorLoading = () => {
@@ -34,6 +36,7 @@ const initialEdges = [{ id: 'n1-n2', source: 'n1', target: 'n2' }];
 export const Editor = ({ workflowId }: { workflowId: string }) => {
   const { data: workflow } = useSuspenseWorkflow(workflowId);
 
+  const setEditor = useSetAtom(editorAtom); // initialize the editor instance
   const [nodes, setNodes] = useState<Node[]>(workflow.nodes);
   const [edges, setEdges] = useState<Edge[]>(workflow.edges);
 
@@ -71,7 +74,11 @@ export const Editor = ({ workflowId }: { workflowId: string }) => {
         onConnect={onConnect}
         nodeTypes={nodeComponents} // this is where we register our custom node types, so when a node has type: NodeType.INITIAL, it will render the InitialNode component
         fitView
+        onInit={(instance) => setEditor(instance)} // set the editor instance in the jotai atom, so we can use it in other components like the AddNodeButton to access editor methods like addNode, getNodes, getEdges, etc.
         proOptions={{ hideAttribution: true }} // to hide the "Made with React Flow" attribution, you can set the proOptions prop with hideAttribution: true.
+        panOnScroll // enable panning the viewport by dragging the mouse (or finger on touch devices) on the background of the editor, without needing to hold down the spacebar
+        panOnDrag={false} // enable panning the viewport by dragging the mouse (or finger on touch devices) on any non-interactive area of the editor, including nodes and edges, without needing to hold down the spacebar
+        selectionOnDrag // enable selecting multiple nodes and edges by dragging a selection box around them, without needing to hold down the spacebar
       >
         <Background />{/* built-in background component */}
         <Controls />{/* built-in controls component with zoom in, zoom out, fit view, and interactive buttons */}
