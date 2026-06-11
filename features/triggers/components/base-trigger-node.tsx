@@ -1,19 +1,21 @@
+// this page contains the delete functionality for the trigger node inside the workflow editor it self
 "use client";
 
-import { type NodeProps, Position } from "@xyflow/react";
+import { type NodeProps, Position, useReactFlow } from "@xyflow/react";
 import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
 import { memo, type ReactNode } from "react";
 import { BaseNode, BaseNodeContent } from "@/components/react-flow/base-node";
 import { BaseHandle } from "@/components/react-flow/base-handle";
 import { WorkflowNode } from "@/components/workflow-node";
+import { type NodeStatus, NodeStatusIndicator } from "@/components/react-flow/node-status-indicator";
 
 interface BaseTriggerNodeProps extends NodeProps {
   icon: LucideIcon | string;
   name: string;
   description?: string;
   children?: ReactNode;
-  // status?: NodeStatus;
+  status?: NodeStatus; // passing the current status of the node to the BaseTriggerNode (initial, loading, success, error))
   onSettings?: () => void;
   onDoubleClick?: () => void;
 };
@@ -27,9 +29,24 @@ export const BaseTriggerNode = memo(
     children,
     onSettings,
     onDoubleClick,
+    status= "initial", // passing the current status of the node to the BaseTriggerNode (initial, loading, success, error)) - default is "initial"
   }: BaseTriggerNodeProps) => {
-    // TODO: add delete method
-    const handleDelete = () => {};
+
+    const { setNodes, setEdges } = useReactFlow(); // to update the nodes and edges in the workflow editor when a node is deleted
+
+    const handleDelete = () => {
+      setNodes((currentNodes) => {
+        const updatedNodes = currentNodes.filter((node) => node.id !== id);
+        return updatedNodes;
+      });
+
+      setEdges((currentEdges) => {
+        const updatedEdges = currentEdges.filter(
+          (edge) => edge.source !== id && edge.target !== id
+        );
+        return updatedEdges;
+      });
+    };
 
     return (
       <WorkflowNode
@@ -38,27 +55,29 @@ export const BaseTriggerNode = memo(
         onDelete={handleDelete}
         onSettings={onSettings}
       >
-        {/* TODO: Wrap within NodeStatusIndicator */}
-        <BaseNode onDoubleClick={onDoubleClick} className="rounded-l-2xl relative group">
-          <BaseNodeContent>
-            {typeof Icon === "string" ? (
-              <Image 
-                src={Icon} 
-                alt={name} 
-                width={16} 
-                height={16}
+        {/* Wrap within NodeStatusIndicator */}
+        <NodeStatusIndicator status={status} variant="border" className="rounded-l-2xl">
+          <BaseNode status={status} onDoubleClick={onDoubleClick} className="rounded-l-2xl relative group">
+            <BaseNodeContent>
+              {typeof Icon === "string" ? (
+                <Image
+                  src={Icon}
+                  alt={name}
+                  width={16}
+                  height={16}
+                />
+              ) : (
+                <Icon className="size-4 text-muted-foreground" />
+              )}
+              {children}
+              <BaseHandle
+                id="source-1"
+                type="source"
+                position={Position.Right}
               />
-            ) : (
-              <Icon className="size-4 text-muted-foreground" />
-            )}
-            {children}
-            <BaseHandle
-              id="source-1"
-              type="source"
-              position={Position.Right}
-            />
-          </BaseNodeContent>
-        </BaseNode>
+            </BaseNodeContent>
+          </BaseNode>
+        </NodeStatusIndicator>
       </WorkflowNode>
     )
   },

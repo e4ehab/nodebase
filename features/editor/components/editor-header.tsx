@@ -13,19 +13,49 @@ import {
 import { Input } from "@/components/ui/input";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useSuspenseWorkflow, useUpdateWorkflowName } from "@/features/workflows/hooks/use-workflows";
-
+import { useSuspenseWorkflow, useUpdateWorkflow, useUpdateWorkflowName } from "@/features/workflows/hooks/use-workflows";
+import { useAtomValue } from "jotai";
+import { editorAtom } from "../store/atoms";
+/*----------------------------------------------------------------------------------------------------------------------*/
 export const EditorSaveButton = ({ workflowId }: { workflowId: string }) => {
+  const editor = useAtomValue(editorAtom); // get the editor instance from the jotai atom
+  const saveWorkflow = useUpdateWorkflow(); // get the mutation hook to save the workflow
+
+  const handleSave = () => {
+    if (!editor) { return; }
+
+    const nodes = editor.getNodes(); // get the current nodes from the editor instance
+    const edges = editor.getEdges(); // get the current edges from the editor instance
+
+    saveWorkflow.mutate({ // takes id, nodes, and edges as input to update the workflow in the database
+      id: workflowId,
+      nodes,
+      edges,
+    })
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === 's') {
+        event.preventDefault(); // prevent browser's native save dialog
+        handleSave();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown); // cleanup on unmount
+  }, [handleSave]);
+
   return (
     <div className="ml-auto">
-      <Button size="sm" onClick={() => {}} disabled={false}>
+      <Button size="sm" onClick={handleSave} disabled={saveWorkflow.isPending}>
         <SaveIcon className="size-4" />
         Save
       </Button>
     </div>
   )
 };
-
+/*----------------------------------------------------------------------------------------------------------------------*/
 export const EditorNameInput = ({ workflowId }: { workflowId: string }) => {
   const { data: workflow } = useSuspenseWorkflow(workflowId);
   const updateWorkflow = useUpdateWorkflowName();
@@ -95,7 +125,7 @@ export const EditorNameInput = ({ workflowId }: { workflowId: string }) => {
     </BreadcrumbItem>
   )
 };
-
+/*----------------------------------------------------------------------------------------------------------------------*/
 export const EditorBreadcrumbs = ({ workflowId }: { workflowId: string }) => {
   return (
     <Breadcrumb>
@@ -113,7 +143,7 @@ export const EditorBreadcrumbs = ({ workflowId }: { workflowId: string }) => {
     </Breadcrumb>
   )
 };
-
+/*----------------------------------------------------------------------------------------------------------------------*/
 export const EditorHeader = ({ workflowId }: { workflowId: string }) => {
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4 bg-background">
@@ -125,3 +155,4 @@ export const EditorHeader = ({ workflowId }: { workflowId: string }) => {
     </header>
   );
 };
+/*----------------------------------------------------------------------------------------------------------------------*/
