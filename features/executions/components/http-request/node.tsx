@@ -7,6 +7,7 @@ import { BaseExecutionNode } from "../base-execution-node";
 import { HttpRequestFormValues, HttpRequestDialog } from "./dialog";
 
 type HttpRequestNodeData = {
+  variableName?: string;
   endpoint?: string;
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: string;
@@ -32,6 +33,7 @@ export const HttpRequestNode = memo((props: NodeProps<HttpRequestNodeType>) => {
             // endpoint: values.endpoint, // imporoved by just spreading values since the form values have the same shape as the node data
             // method: values.method,
             // body: values.body,
+            // variableName: values.variableName,
             ...values,
           }
         }
