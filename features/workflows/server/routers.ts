@@ -5,6 +5,8 @@ import { z } from "zod";
 import { generateSlug } from "random-word-slugs"; // used to generate random workflow names like "blue-horse-jump" when creating a new workflow
 import { NodeType } from "@/app/generated/prisma/client";
 import type { Node, Edge } from "@xyflow/react"; // type of node & Edge from @xyflow/react
+import { inngest } from "@/inngest/client";
+
 
 export const workflowsRouter = createTRPCRouter({
     /*------------------------------------------------*/
@@ -233,5 +235,23 @@ export const workflowsRouter = createTRPCRouter({
                 hasPreviousPage,
             };
         }),
-    /*-----------------------------------------------------------*/
+    /*------------------------------------------------------------------------------------------------------------------------------------*/
+    // execute workflow
+    execute: protectedProcedure
+        .input(z.object({ id: z.string() }))
+        .mutation(async ({ input, ctx }) => {
+            const workflow = await prisma.workflow.findUniqueOrThrow({
+                where: {
+                    id: input.id,
+                    userId: ctx.auth.user.id,
+                },
+            });
+
+            await inngest.send({
+                name: "workflows/execute.workflow",
+                data: { workflowId: input.id },
+            });
+
+            return workflow;
+        }),
 });
