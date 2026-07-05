@@ -95,6 +95,7 @@ export const execute_with_geminai = inngest.createFunction(
 export const executeWorkflow = inngest.createFunction(
   {
     id: "execute_workflow",
+    retries: 0,
     triggers: [
       {
         event: "workflows/execute.workflow",
@@ -107,6 +108,8 @@ export const executeWorkflow = inngest.createFunction(
     if (!workflowId) { // inngest will not try if there is no workflow exists
       throw new NonRetriableError("Workflow ID is missing");
     }
+
+    const publish = inngest.realtime.publish.bind(inngest.realtime);
 
     const sortedNodes = await step.run("prepare-workflow", async () => {
       const workflow = await prisma.workflow.findUniqueOrThrow({
@@ -131,6 +134,7 @@ export const executeWorkflow = inngest.createFunction(
         nodeId: node.id,
         context,
         step,
+        publish,
       });
     }
 
