@@ -5,6 +5,9 @@ import { GlobeIcon } from "lucide-react";
 import { memo, useState } from "react";
 import { BaseExecutionNode } from "../base-execution-node";
 import { HttpRequestFormValues, HttpRequestDialog } from "./dialog";
+import { useNodeStatus } from "../../hooks/use-node-status";
+import { httpRequestChannel } from "@/inngest/channels/http-request";
+import { fetchHttpRequestRealtimeToken } from "./actions";
 
 type HttpRequestNodeData = {
   variableName?: string;
@@ -17,9 +20,14 @@ type HttpRequestNodeType = Node<HttpRequestNodeData>;
 
 export const HttpRequestNode = memo((props: NodeProps<HttpRequestNodeType>) => {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { setNodes } = useReactFlow(); // to preserve the values
+  const { setNodes } = useReactFlow();
 
-  const nodeStatus = "initial"; // pass the current status of the node (initial, loading, success, error) to the HttpRequestNode and then to the BaseExecutionNode to show the appropriate status indicator
+  const nodeStatus = useNodeStatus({
+    nodeId: props.id,
+    channel: httpRequestChannel,
+    topic: "status",
+    refreshToken: fetchHttpRequestRealtimeToken,
+  });
 
   const handleOpenSettings = () => setDialogOpen(true);
 
@@ -30,10 +38,6 @@ export const HttpRequestNode = memo((props: NodeProps<HttpRequestNodeType>) => {
           ...node,
           data: {
             ...node.data,
-            // endpoint: values.endpoint, // imporoved by just spreading values since the form values have the same shape as the node data
-            // method: values.method,
-            // body: values.body,
-            // variableName: values.variableName,
             ...values,
           }
         }
@@ -54,10 +58,6 @@ export const HttpRequestNode = memo((props: NodeProps<HttpRequestNodeType>) => {
         onOpenChange={setDialogOpen}
         onSubmit={handleSubmit}
         defaultValues={nodeData}
-        
-        // defaultEndpoint={nodeData.endpoint} // improved by just sending defaultValues={nodeData} instead of the 3 separate props and then using those as default values in the form which will be reset when the dialog opens with new values
-        // defaultMethod={nodeData.method}
-        // defaultBody={nodeData.body}
       />
       <BaseExecutionNode
         {...props}

@@ -6,17 +6,16 @@ import { useAtomValue } from "jotai";
 import { FlaskConicalIcon } from "lucide-react";
 
 export const ExecuteWorkflowButton = ({ workflowId }: { workflowId: string }) => {
-  const editor = useAtomValue(editorAtom); // get the editor instance from the jotai atom
-  const saveWorkflow = useUpdateWorkflow(); // get the mutation hook to save the workflow
-  const executeWorkflow = useExecuteWorkflow(); // get the mutation hook to execute the workflow
+  const editor = useAtomValue(editorAtom);
+  const saveWorkflow = useUpdateWorkflow();
+  const executeWorkflow = useExecuteWorkflow();
 
   const handleExecute = () => {
     if (!editor) { return; }
 
-    const nodes = editor.getNodes();// get the current nodes from the editor instance
-    const edges = editor.getEdges();// get the current edges from the editor instance
+    const nodes = editor.getNodes();
+    const edges = editor.getEdges();
 
-    // save first, then execute after save completes
     saveWorkflow.mutate({ id: workflowId, nodes, edges }, {
       onSuccess: () => {
         executeWorkflow.mutate({ id: workflowId });

@@ -3,11 +3,21 @@ import { memo, useState } from "react";
 import { BaseTriggerNode } from "../base-trigger-node";
 import { MousePointerIcon } from "lucide-react";
 import { ManualTriggerDialog } from "./dialog";
+import { useNodeStatus } from "@/features/executions/hooks/use-node-status";
+import { manualTriggerChannel } from "@/inngest/channels/manual-trigger";
+import { fetchManualTriggerRealtimeToken } from "./actions";
 
 export const ManualTriggerNode = memo((props: NodeProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  const nodeStatus = useNodeStatus({
+    nodeId: props.id,
+    channel: manualTriggerChannel,
+    topic: "status",
+    refreshToken: fetchManualTriggerRealtimeToken,
+  });
+
   const handleOpenSettings = () => { setDialogOpen(true); }
-  const nodeStatus = "initial"; // pass the current status of the node (initial, loading, success, error) to the ManualTriggerNode and then to the BaseTriggerNode to show the appropriate status indicator
 
   return (
     <>
@@ -16,7 +26,7 @@ export const ManualTriggerNode = memo((props: NodeProps) => {
         {...props}
         icon={MousePointerIcon}
         name="When clicking 'Execute workflow'"
-        status={nodeStatus} // pass the current status of the node (initial, loading, success, error) to the ManualTriggerNode and then to the BaseTriggerNode to show the appropriate status indicator
+        status={nodeStatus}
         onSettings={handleOpenSettings}
         onDoubleClick={handleOpenSettings}
       />

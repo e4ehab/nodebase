@@ -1,9 +1,11 @@
-import type { NodeExecutor } from "@/features/executions/types";
-import { NonRetriableError } from "inngest";
-import ky, { type Options as KyOptions } from "ky";
 import Handlebars from "handlebars";
+import { NonRetriableError } from "inngest";
+import ky, { HTTPError, type Options as KyOptions } from "ky";
+import type { NodeExecutor, PublishFn } from "@/features/executions/types";
+import { httpRequestChannel } from "@/inngest/channels/http-request";
+import type { NodeStatus } from "@/components/react-flow/node-status-indicator";
 
-Handlebars.registerHelper("json", (context) => { // makes the qoute from &qout; to {} so the json result is correct
+Handlebars.registerHelper("json", (context) => {
     const jsonString = JSON.stringify(context, null, 2);
     const safeString = new Handlebars.SafeString(jsonString);
 
@@ -17,73 +19,121 @@ type HttpRequestData = {
     body?: string;
 };
 
+async function publishNodeStatus(
+    publish: PublishFn,
+    nodeId: string,
+    status: NodeStatus,
+) {
+    await publish(httpRequestChannel.status, { nodeId, status });
+}
+
+function toNonRetriableError(error: unknown): NonRetriableError {
+    if (error instanceof NonRetriableError) {
+        return error;
+    }
+
+    if (error instanceof HTTPError) {
+        return new NonRetriableError(
+            `HTTP Request failed with status code ${error.response.status}: ${error.request.method} ${error.request.url}`,
+        );
+    }
+
+    if (error instanceof Error) {
+        return new NonRetriableError(error.message);
+    }
+
+    return new NonRetriableError("HTTP Request node failed");
+}
+
 export const httpRequestExecutor: NodeExecutor<HttpRequestData> = async ({
     data,
     nodeId,
     context,
     step,
+    publish,
 }) => {
-    // TODO: Publish "loading" state for http request
+    await publishNodeStatus(publish, nodeId, "loading");
 
-    // the following if statements are run time validations ensuring the users are passing this 
     if (!data.endpoint) {
-        // TODO: Publish "error" state for http request
+        await publishNodeStatus(publish, nodeId, "error");
         throw new NonRetriableError("HTTP Request node: No endpoint configured");
     }
 
     if (!data.variableName) {
-        // TODO: Publish "error" state for http request
+        await publishNodeStatus(publish, nodeId, "error");
         throw new NonRetriableError("HTTP Request node: Variable name not configured");
     }
 
     if (!data.method) {
-        // TODO: Publish "error" state for http request
+        await publishNodeStatus(publish, nodeId, "error");
         throw new NonRetriableError("HTTP Request node: method not configured");
     }
 
-    const result = await step.run("http-request", async () => {
-        // http://..../{{todo.httpResponse.data.userId}}
-        const endpoint = Handlebars.compile(data.endpoint)(context);
-        //  handlebars make the http request chainable (data endpoint + context)
-        //  data.endpoint -> is the template the user configured on the node
-        //  contex -> is the data from previous node
-        //  compined they produce the final reql url: template + context filled in the acutual url (https://api.example.com/users/456)
-        const method = data.method;
+    const endpoint = Handlebars.compile(data.endpoint)(context);
+    const method = data.method;
+    let requestBody: string | undefined;
 
-        const options: KyOptions = { method };
+    if (["POST", "PUT", "PATCH"].includes(method)) {
+        const resolved = Handlebars.compile(data.body || "{}")(context);
 
-
-        if (["POST", "PUT", "PATCH"].includes(method)) {
-            const resolved = Handlebars.compile(data.body || "{}")(context);
+        try {
             JSON.parse(resolved);
-            options.body = resolved;
-            options.headers = {
-                "Content-Type": "application/json", // ensure {POST, Put, Patch} requests doesn't get rejected, because headers are important part of http request
-            }
-        };
-
-        const response = await ky(endpoint, options);
-        const contentType = response.headers.get("content-type");
-        const responseData = contentType?.includes("application/json")
-            ? await response.json()
-            : await response.text();
-
-        const responsePayload = {
-            httpResponse: {
-                status: response.status,
-                statusText: response.statusText,
-                data: responseData,
-            },
-        };
-
-        return {
-            ...context,
-            [data.variableName]: responsePayload,
+        } catch {
+            await publishNodeStatus(publish, nodeId, "error");
+            throw new NonRetriableError(
+                "HTTP Request node: Request body must be valid JSON",
+            );
         }
 
-    });
+        requestBody = resolved;
+    }
 
-    // TODO: Publish "success" state for http request
+    try {
+        const result = await step.run(`http-request-${nodeId}`, async () => {
+            const options: KyOptions = {
+                method,
+                throwHttpErrors: false,
+            };
 
-    return result;
+            if (requestBody !== undefined) {
+                options.body = requestBody;
+                options.headers = {
+                    "Content-Type": "application/json",
+                };
+            }
+
+            const response = await ky(endpoint, options);
+
+            if (!response.ok) {
+                throw new NonRetriableError(
+                    `HTTP Request failed with status code ${response.status}: ${method} ${endpoint}`,
+                );
+            }
+
+            const contentType = response.headers.get("content-type");
+            const responseData = contentType?.includes("application/json")
+                ? await response.json()
+                : await response.text();
+
+            const responsePayload = {
+                httpResponse: {
+                    status: response.status,
+                    statusText: response.statusText,
+                    data: responseData,
+                },
+            };
+
+            return {
+                ...context,
+                [data.variableName]: responsePayload,
+            };
+        });
+
+        await publishNodeStatus(publish, nodeId, "success");
+
+        return result;
+    } catch (error) {
+        await publishNodeStatus(publish, nodeId, "error");
+        throw toNonRetriableError(error);
+    }
 };
