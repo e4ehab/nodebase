@@ -13,3 +13,7 @@ npx inngest-cli@latest dev  --> install inngest
 npm run inngest:dev         --> run inngest in local host
 
 npm run all                 --> run all the processes in one terminal
+
+brew install ngrok              --> install ngrok to have free reachable dynamic server
+
+ngrok http --url=shandra-unvizarded-discomfortingly.ngrok-free.dev 3000   --> make it static unchanged per close

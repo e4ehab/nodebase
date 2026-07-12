@@ -1,19 +1,19 @@
 import type { NodeExecutor, PublishFn } from "@/features/executions/types";
-import { manualTriggerChannel } from "@/inngest/channels/manual-trigger";
+import { googleFormTriggerChannel } from "@/inngest/channels/google-form-trigger";
 import type { NodeStatus } from "@/components/react-flow/node-status-indicator";
 import { NonRetriableError } from "inngest";
 
-type ManualTriggerData = Record<string, unknown>;
+type GoogleFormTriggerData = Record<string, unknown>;
 
 async function publishNodeStatus(
     publish: PublishFn,
     nodeId: string,
     status: NodeStatus,
 ) {
-    await publish(manualTriggerChannel.status, { nodeId, status });
+    await publish(googleFormTriggerChannel.status, { nodeId, status });
 }
 
-export const manualTriggerExecutor: NodeExecutor<ManualTriggerData> = async ({
+export const googleFormTriggerExecutor: NodeExecutor<GoogleFormTriggerData> = async ({
     nodeId,
     context,
     step,
@@ -22,7 +22,7 @@ export const manualTriggerExecutor: NodeExecutor<ManualTriggerData> = async ({
     await publishNodeStatus(publish, nodeId, "loading");
 
     try {
-        const result = await step.run(`manual-trigger-${nodeId}`, async () => context);
+        const result = await step.run(`google-form-trigger-${nodeId}`, async () => context);
 
         await publishNodeStatus(publish, nodeId, "success");
 
@@ -31,6 +31,6 @@ export const manualTriggerExecutor: NodeExecutor<ManualTriggerData> = async ({
         await publishNodeStatus(publish, nodeId, "error");
         throw error instanceof NonRetriableError
             ? error
-            : new NonRetriableError("Manual trigger node failed");
+            : new NonRetriableError("Google Form trigger node failed");
     }
 };
