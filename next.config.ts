@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  allowedDevOrigins: ["shandra-unvizarded-discomfortingly.ngrok-free.dev"],
   async redirects() {
     return [
       {

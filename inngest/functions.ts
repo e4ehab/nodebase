@@ -8,7 +8,6 @@ import { getExecutor } from "@/features/executions/lib/executor-registry";
 import { topologicalSort } from "./utils";
 import { NonRetriableError } from "inngest";
 
-
 const openai = createOpenAI();
 const google = createGoogleGenerativeAI();
 /*---------------------------------------------------------------------------------------------------------------------------------*/

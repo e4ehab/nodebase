@@ -15,6 +15,30 @@ type StatusMessageData = {
     status: NodeStatus;
 };
 
+type NodeStatusEntry = {
+    createdAt: number;
+    status: NodeStatus;
+};
+
+function resolveNodeStatus(entries: NodeStatusEntry[]): NodeStatus {
+    if (entries.length === 0) {
+        return "initial";
+    }
+
+    const sorted = [...entries].sort((a, b) => b.createdAt - a.createdAt);
+    const latest = sorted[0];
+    const latestLoading = sorted.find((entry) => entry.status === "loading");
+    const latestTerminal = sorted.find(
+        (entry) => entry.status === "success" || entry.status === "error",
+    );
+
+    if (latestLoading && latestTerminal && latestTerminal.createdAt >= latestLoading.createdAt) {
+        return latestTerminal.status;
+    }
+
+    return latest.status;
+}
+
 export function useNodeStatus({
     nodeId,
     channel,
@@ -32,22 +56,30 @@ export function useNodeStatus({
     });
 
     useEffect(() => {
-        const latestMessage = messages.all
-            .filter((message) => message.topic === topic)
-            .map((message) => ({
-                message,
-                data: message.data as StatusMessageData,
-            }))
-            .filter(({ data }) => data.nodeId === nodeId)
-            .sort((a, b) => {
-                const aTime = a.message.createdAt?.getTime() ?? 0;
-                const bTime = b.message.createdAt?.getTime() ?? 0;
-                return bTime - aTime;
-            })[0];
+        const entries: NodeStatusEntry[] = [];
 
-        if (latestMessage) {
-            setStatus(latestMessage.data.status);
+        for (const message of messages.all) {
+            if (!("data" in message) || !("createdAt" in message)) {
+                continue;
+            }
+
+            if (message.topic !== topic) {
+                continue;
+            }
+
+            const data = message.data as StatusMessageData;
+
+            if (data.nodeId !== nodeId) {
+                continue;
+            }
+
+            entries.push({
+                createdAt: message.createdAt.getTime(),
+                status: data.status,
+            });
         }
+
+        setStatus(resolveNodeStatus(entries));
     }, [messages.all, messages.delta, nodeId, topic]);
 
     return status;
