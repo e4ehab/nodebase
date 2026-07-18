@@ -1,2 +1,3 @@
 WARN [lib::vt100::screen] CSI not implemented: ESC [ ?12  l
 WARN [lib::vt100::screen] CSI not implemented: ESC [ ?1015  l
+ERROR [lib::error] Error: Input/output error (os error 5)

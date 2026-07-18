@@ -53,3 +53,5 @@ next-env.d.ts
 /app/generated/prisma/models/
 
 README.md
+
+mprocs.log
