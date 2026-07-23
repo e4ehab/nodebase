@@ -1,37 +1,35 @@
 "use client";
 
 import { useReactFlow, type Node, type NodeProps } from "@xyflow/react";
-import { GlobeIcon } from "lucide-react";
 import { memo, useState } from "react";
 import { BaseExecutionNode } from "../base-execution-node";
-import { HttpRequestFormValues, HttpRequestDialog } from "./dialog";
+import { AnthropicDialog, AnthropicFormValues } from "./dialog";
 import { useWorkflowNodeStatus } from "../../hooks/use-node-status";
-import { httpRequestChannel } from "@/inngest/channels/http-request";
-import { fetchHttpRequestRealtimeToken } from "./actions";
+import { fetchAnthropicRealtimeToken } from "./actions";
+import { anthropicChannel } from "@/inngest/channels/anthropic";
 
-type HttpRequestNodeData = {
+type AnthropicNodeData = {
   variableName?: string;
-  endpoint?: string;
-  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-  body?: string;
+  systemPrompt?: string;
+  userPrompt?: string;
 };
 
-type HttpRequestNodeType = Node<HttpRequestNodeData>;
+type AnthropicNodeType = Node<AnthropicNodeData>;
 
-export const HttpRequestNode = memo((props: NodeProps<HttpRequestNodeType>) => {
+export const AnthropicNode = memo((props: NodeProps<AnthropicNodeType>) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { setNodes } = useReactFlow();
 
   const nodeStatus = useWorkflowNodeStatus({
     nodeId: props.id,
-    channel: httpRequestChannel,
+    channel: anthropicChannel,
     topic: "status",
-    refreshToken: fetchHttpRequestRealtimeToken,
+    refreshToken: fetchAnthropicRealtimeToken,
   });
 
   const handleOpenSettings = () => setDialogOpen(true);
 
-  const handleSubmit = (values: HttpRequestFormValues) => {
+  const handleSubmit = (values: AnthropicFormValues) => {
     setNodes((nodes) => nodes.map((node) => {
       if (node.id === props.id) {
         return {
@@ -39,21 +37,21 @@ export const HttpRequestNode = memo((props: NodeProps<HttpRequestNodeType>) => {
           data: {
             ...node.data,
             ...values,
-          }
-        }
+          },
+        };
       }
       return node;
-    }))
+    }));
   };
 
   const nodeData = props.data;
-  const description = nodeData?.endpoint
-    ? `${nodeData.method || "GET"}: ${nodeData.endpoint}`
+  const description = nodeData?.userPrompt
+    ? `claude-sonnet-4-5: ${nodeData.userPrompt.slice(0, 50)}...`
     : "Not configured";
 
   return (
     <>
-      <HttpRequestDialog
+      <AnthropicDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onSubmit={handleSubmit}
@@ -62,15 +60,15 @@ export const HttpRequestNode = memo((props: NodeProps<HttpRequestNodeType>) => {
       <BaseExecutionNode
         {...props}
         id={props.id}
-        icon={GlobeIcon}
-        name="HTTP Request"
+        icon="/logos/anthropic.svg"
+        name="Anthropic"
         status={nodeStatus}
         description={description}
         onSettings={handleOpenSettings}
         onDoubleClick={handleOpenSettings}
       />
     </>
-  )
+  );
 });
 
-HttpRequestNode.displayName = "HttpRequestNode";
+AnthropicNode.displayName = "AnthropicNode";

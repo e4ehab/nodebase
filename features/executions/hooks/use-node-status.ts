@@ -1,13 +1,16 @@
 import type { Realtime } from "inngest";
+import { useAtomValue } from "jotai";
 import { useRealtime } from "inngest/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { NodeStatus } from "@/components/react-flow/node-status-indicator";
+import { workflowExecutionRunAtom } from "@/features/editor/store/atoms";
 
 interface UseNodeStatusOptions {
     nodeId: string;
     channel: Realtime.ChannelInput;
     topic: string;
     refreshToken: () => Promise<Realtime.Subscribe.ClientToken>;
+    executionRunKey?: number;
 }
 
 type StatusMessageData = {
@@ -44,8 +47,10 @@ export function useNodeStatus({
     channel,
     topic,
     refreshToken,
+    executionRunKey,
 }: UseNodeStatusOptions) {
     const [status, setStatus] = useState<NodeStatus>("initial");
+    const resetAfterRef = useRef(0);
 
     const { messages } = useRealtime({
         channel,
@@ -54,6 +59,15 @@ export function useNodeStatus({
         enabled: true,
         historyLimit: 50,
     });
+
+    useEffect(() => {
+        if (executionRunKey === undefined) {
+            return;
+        }
+
+        resetAfterRef.current = Date.now();
+        setStatus("initial");
+    }, [executionRunKey]);
 
     useEffect(() => {
         const entries: NodeStatusEntry[] = [];
@@ -67,6 +81,12 @@ export function useNodeStatus({
                 continue;
             }
 
+            const createdAt = message.createdAt.getTime();
+
+            if (createdAt < resetAfterRef.current) {
+                continue;
+            }
+
             const data = message.data as StatusMessageData;
 
             if (data.nodeId !== nodeId) {
@@ -74,13 +94,24 @@ export function useNodeStatus({
             }
 
             entries.push({
-                createdAt: message.createdAt.getTime(),
+                createdAt,
                 status: data.status,
             });
         }
 
         setStatus(resolveNodeStatus(entries));
-    }, [messages.all, messages.delta, nodeId, topic]);
+    }, [messages.all, messages.delta, nodeId, topic, executionRunKey]);
 
     return status;
+}
+
+export function useWorkflowNodeStatus(
+    options: Omit<UseNodeStatusOptions, "executionRunKey">,
+) {
+    const executionRunKey = useAtomValue(workflowExecutionRunAtom);
+
+    return useNodeStatus({
+        ...options,
+        executionRunKey,
+    });
 }
