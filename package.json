@@ -11,6 +11,7 @@
     "all": "mprocs"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.98",
     "@ai-sdk/google": "^3.0.71",
     "@ai-sdk/openai": "^3.0.63",
     "@base-ui/react": "^1.4.0",
