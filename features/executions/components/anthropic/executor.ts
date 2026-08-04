@@ -5,6 +5,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import type { NodeExecutor, PublishFn } from "@/features/executions/types";
 import { anthropicChannel } from "@/inngest/channels/anthropic";
 import type { NodeStatus } from "@/components/react-flow/node-status-indicator";
+import prisma from "@/lib/db";
 
 Handlebars.registerHelper("json", (context) => {
     const jsonString = JSON.stringify(context, null, 2);
@@ -13,6 +14,7 @@ Handlebars.registerHelper("json", (context) => {
 
 type AnthropicData = {
     variableName?: string;
+    credentialId?: string;
     systemPrompt?: string;
     userPrompt?: string;
 };
@@ -55,14 +57,14 @@ export const anthropicExecutor: NodeExecutor<AnthropicData> = async ({
         throw new NonRetriableError("Anthropic node: Variable name is missing");
     }
 
+    if (!data.credentialId) {
+        await publishNodeStatus(publish, nodeId, "error");
+        throw new NonRetriableError("Anthropic node: Credential is required");
+    }
+
     if (!data.userPrompt) {
         await publishNodeStatus(publish, nodeId, "error");
         throw new NonRetriableError("Anthropic node: User prompt is missing");
-    }
-
-    if (!process.env.ANTHROPIC_API_KEY) {
-        await publishNodeStatus(publish, nodeId, "error");
-        throw new NonRetriableError("Anthropic node: ANTHROPIC_API_KEY is not configured");
     }
 
     const systemPrompt = data.systemPrompt
@@ -70,7 +72,20 @@ export const anthropicExecutor: NodeExecutor<AnthropicData> = async ({
         : "You are a helpful assistant.";
     const userPrompt = Handlebars.compile(data.userPrompt)(context);
 
-    const anthropic = createAnthropic();
+    const credential = await step.run(`anthropic-credential-${nodeId}`, async () => {
+        return prisma.credential.findUnique({
+            where: { id: data.credentialId },
+        });
+    });
+
+    if (!credential) {
+        await publishNodeStatus(publish, nodeId, "error");
+        throw new NonRetriableError("Anthropic node: Credential not found");
+    }
+
+    const anthropic = createAnthropic({
+        apiKey: credential.value,
+    });
 
     try {
         const result = await step.run(`anthropic-${nodeId}`, async () => {

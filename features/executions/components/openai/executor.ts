@@ -5,6 +5,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import type { NodeExecutor, PublishFn } from "@/features/executions/types";
 import { openAiChannel } from "@/inngest/channels/openai";
 import type { NodeStatus } from "@/components/react-flow/node-status-indicator";
+import prisma from "@/lib/db";
 
 Handlebars.registerHelper("json", (context) => {
     const jsonString = JSON.stringify(context, null, 2);
@@ -13,6 +14,7 @@ Handlebars.registerHelper("json", (context) => {
 
 type OpenAiData = {
     variableName?: string;
+    credentialId?: string;
     systemPrompt?: string;
     userPrompt?: string;
 };
@@ -55,14 +57,14 @@ export const openAiExecutor: NodeExecutor<OpenAiData> = async ({
         throw new NonRetriableError("OpenAI node: Variable name is missing");
     }
 
+    if (!data.credentialId) {
+        await publishNodeStatus(publish, nodeId, "error");
+        throw new NonRetriableError("OpenAI node: Credential is required");
+    }
+
     if (!data.userPrompt) {
         await publishNodeStatus(publish, nodeId, "error");
         throw new NonRetriableError("OpenAI node: User prompt is missing");
-    }
-
-    if (!process.env.OPENAI_API_KEY) {
-        await publishNodeStatus(publish, nodeId, "error");
-        throw new NonRetriableError("OpenAI node: OPENAI_API_KEY is not configured");
     }
 
     const systemPrompt = data.systemPrompt
@@ -70,7 +72,20 @@ export const openAiExecutor: NodeExecutor<OpenAiData> = async ({
         : "You are a helpful assistant.";
     const userPrompt = Handlebars.compile(data.userPrompt)(context);
 
-    const openai = createOpenAI();
+    const credential = await step.run(`openai-credential-${nodeId}`, async () => {
+        return prisma.credential.findUnique({
+            where: { id: data.credentialId },
+        });
+    });
+
+    if (!credential) {
+        await publishNodeStatus(publish, nodeId, "error");
+        throw new NonRetriableError("OpenAI node: Credential not found");
+    }
+
+    const openai = createOpenAI({
+        apiKey: credential.value,
+    });
 
     try {
         const result = await step.run(`openai-${nodeId}`, async () => {
