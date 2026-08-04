@@ -5,6 +5,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import type { NodeExecutor, PublishFn } from "@/features/executions/types";
 import { geminiChannel } from "@/inngest/channels/gemini";
 import type { NodeStatus } from "@/components/react-flow/node-status-indicator";
+import prisma from "@/lib/db";
 
 Handlebars.registerHelper("json", (context) => {
     const jsonString = JSON.stringify(context, null, 2);
@@ -13,6 +14,7 @@ Handlebars.registerHelper("json", (context) => {
 
 type GeminiData = {
     variableName?: string;
+    credentialId?: string;
     systemPrompt?: string;
     userPrompt?: string;
 };
@@ -55,16 +57,14 @@ export const geminiExecutor: NodeExecutor<GeminiData> = async ({
         throw new NonRetriableError("Gemini node: Variable name is missing");
     }
 
+    if (!data.credentialId) {
+        await publishNodeStatus(publish, nodeId, "error");
+        throw new NonRetriableError("Gemini node: Credential is required");
+    }
+
     if (!data.userPrompt) {
         await publishNodeStatus(publish, nodeId, "error");
         throw new NonRetriableError("Gemini node: User prompt is missing");
-    }
-
-    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-        await publishNodeStatus(publish, nodeId, "error");
-        throw new NonRetriableError(
-            "Gemini node: GOOGLE_GENERATIVE_AI_API_KEY is not configured",
-        );
     }
 
     const systemPrompt = data.systemPrompt
@@ -72,7 +72,20 @@ export const geminiExecutor: NodeExecutor<GeminiData> = async ({
         : "You are a helpful assistant.";
     const userPrompt = Handlebars.compile(data.userPrompt)(context);
 
-    const google = createGoogleGenerativeAI();
+    const credential = await step.run(`gemini-credential-${nodeId}`, async () => {
+        return prisma.credential.findUnique({
+            where: { id: data.credentialId },
+        });
+    });
+
+    if (!credential) {
+        await publishNodeStatus(publish, nodeId, "error");
+        throw new NonRetriableError("Gemini node: Credential not found");
+    }
+
+    const google = createGoogleGenerativeAI({
+        apiKey: credential.value,
+    });
 
     try {
         const result = await step.run(`gemini-${nodeId}`, async () => {

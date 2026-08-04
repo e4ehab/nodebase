@@ -9,6 +9,15 @@
 * 🟢 You can import this file directly.
 */
 
+export const CredentialType = {
+  OPENAI: 'OPENAI',
+  ANTHROPIC: 'ANTHROPIC',
+  GEMINI: 'GEMINI'
+} as const
+
+export type CredentialType = (typeof CredentialType)[keyof typeof CredentialType]
+
+
 export const NodeType = {
   INITIAL: 'INITIAL',
   MANUAL_TRIGGER: 'MANUAL_TRIGGER',
