@@ -37,6 +37,7 @@
     "dotenv": "^17.4.2",
     "embla-carousel-react": "^8.6.0",
     "handlebars": "^4.7.9",
+    "html-entities": "^2.6.0",
     "inngest": "^4.11.0",
     "input-otp": "^1.4.2",
     "jotai": "^2.20.0",
