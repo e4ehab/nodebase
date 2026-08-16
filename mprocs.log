@@ -1,3 +1,6 @@
 WARN [lib::vt100::screen] CSI not implemented: ESC [ ?12  l
 WARN [lib::vt100::screen] CSI not implemented: ESC [ ?1015  l
 ERROR [lib::error] Error: Input/output error (os error 5)
+ERROR [lib::mprocs] Got panic. @info:panicked at src/vt100/grid.rs:546:10:
+called `Option::unwrap()` on a `None` value
+@stackTrace:disabled backtrace

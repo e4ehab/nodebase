@@ -32,3 +32,12 @@ export const NodeType = {
 } as const
 
 export type NodeType = (typeof NodeType)[keyof typeof NodeType]
+
+
+export const ExecutionStatus = {
+  RUNNING: 'RUNNING',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED'
+} as const
+
+export type ExecutionStatus = (typeof ExecutionStatus)[keyof typeof ExecutionStatus]
