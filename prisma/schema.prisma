@@ -99,6 +99,7 @@ model Workflow {
 
   nodes       Node[] // A workflow can have multiple nodes [establish relation between nodes and workflows]
   connections Connection[]
+  executions  Execution[]
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade) // Each workflow belongs to a user
@@ -158,4 +159,28 @@ model Connection {
   updatedAt DateTime @updatedAt
 
   @@unique([fromNodeId, toNodeId, fromOutput, toInput]) // This unique constraint ensures that there cannot be duplicate connections between the same nodes with the same output and input specifications.
+  
+}
+
+enum ExecutionStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+model Execution {
+  id         String   @id @default(cuid())
+
+  workflowId String // foreign key to the Workflow model,
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  status     ExecutionStatus @default(RUNNING)
+  error      String? @db.Text // error is an optional string that can store error messages or details if the execution fails, and it's stored as a Text type in the database to accommodate potentially long error messages.
+  errorStack String? @db.Text // errorStack is another optional string that can store the stack trace of an error, also stored as Text in the database.
+
+  startedAt  DateTime @default(now())
+  completedAt DateTime?
+
+  inngestEventId String @unique
+  output     Json?
 }

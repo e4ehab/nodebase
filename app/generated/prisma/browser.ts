@@ -57,3 +57,8 @@ export type Node = Prisma.NodeModel
  * 
  */
 export type Connection = Prisma.ConnectionModel
+/**
+ * Model Execution
+ * 
+ */
+export type Execution = Prisma.ExecutionModel

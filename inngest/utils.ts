@@ -5,6 +5,7 @@
 import { Connection, Node } from "@/app/generated/prisma/client";
 import toposort from "toposort";
 import { inngest } from "@/inngest/client";
+import { createId } from "@paralleldrive/cuid2"; // to ensure unique id for each event
 
 export const topologicalSort = (
   nodes: Node[],
@@ -59,5 +60,6 @@ export const sendWorkflowExecution = async (data: {
   return inngest.send({
     name: "workflows/execute.workflow",
     data,
+    id: createId(), // Generate a unique ID for the event, this accepts id due to @paralleldrive/cuid2
   });
 };
