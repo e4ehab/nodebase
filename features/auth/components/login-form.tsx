@@ -47,10 +47,8 @@ export function LoginForm() {
   const signInGithub = async () => {
     await authClient.signIn.social({
       provider: "github",
+      callbackURL: "/",
     }, {
-      onSuccess: () => {
-        router.push("/");
-      },
       onError: () => {
         toast.error("Something went wrong");
       },
@@ -60,10 +58,8 @@ export function LoginForm() {
   const signInGoogle = async () => {
     await authClient.signIn.social({
       provider: "google",
+      callbackURL: "/",
     }, {
-      onSuccess: () => {
-        router.push("/");
-      },
       onError: () => {
         toast.error("Something went wrong");
       },
