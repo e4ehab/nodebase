@@ -218,7 +218,7 @@ export const EmptyView = ({
       {!!onNew && (
         <EmptyContent>
           <Button onClick={onNew}>
-            Add new Workflow
+            Add new credential
           </Button>
         </EmptyContent>
       )}
