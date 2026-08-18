@@ -64,13 +64,15 @@ const credentialTypeOptions = [
   },
 ];
 
+type CredentialRecord = {
+  id?: string;
+  name: string;
+  type: CredentialType;
+  value: string;
+};
+
 interface CredentialFormProps {
-  initialData?: {
-    id?: string;
-    name: string;
-    type: CredentialType;
-    value: string;
-  };
+  initialData?: CredentialRecord;
 }
 
 export const CredentialForm = ({
@@ -224,7 +226,9 @@ export const CredentialView = ({
 }: {
   credentialId: string;
 }) => {
-  const { data: credential } = useSuspenseCredential(credentialId);
+  const { data: credential } = useSuspenseCredential(credentialId) as {
+    data: CredentialRecord | undefined;
+  };
 
   return <CredentialForm initialData={credential} />;
 };
