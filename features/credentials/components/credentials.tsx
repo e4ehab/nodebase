@@ -40,7 +40,7 @@ export const CredentialsList = () => {
   const credentials = useSuspenseCredentials();
 
   return (
-    <EntityList
+    <EntityList<Credential>
       items={credentials.data.items}
       getKey={(credential) => credential.id}
       renderItem={(credential) => <CredentialItem data={credential} />}
