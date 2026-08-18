@@ -94,7 +94,7 @@ export const execute_with_geminai = inngest.createFunction(
 export const executeWorkflow = inngest.createFunction(
   {
     id: "execute_workflow",
-    retries: 0,
+    retries: process.env.NODE_ENV === "production" ? 3 : 0, // retry 3 times in production, no retry in development
 
     onFailure: async ({ event, step }) => { // if the workflow fails, update the execution status to FAILED and log the error
       return prisma.execution.update({
